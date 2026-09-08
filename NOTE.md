@@ -110,14 +110,50 @@
 # FE-2
 
     - Bug:
-        
+        Filtering by meal_id on the Stock Events page still returns every event.
+        Typing a meal_id into the filter input and clicking "Apply filter" had no effect;
+        the table always showed the full unfiltered list.
+
     - Cause:
+        In file /FE/src/api/client.ts
+        Line 118 built the query string as `?meal=<value>` instead of `?meal_id=<value>`.
+        Because the endpoint declares the parameter as `meal_id`,
+        the mismatched name caused FastAPI to treat the parameter as absent (None),
+        so the service returned all events unconditionally.
 
     - Solution:
+        Fixed in file /FE/src/api/client.ts
+
+        Before
+            const q = meal_id ? `?meal=${encodeURIComponent(meal_id)}` : "";
+
+        After
+            const q = meal_id ? `?meal_id=${encodeURIComponent(meal_id)}` : "";
 
 ### Test File
   - Framework: pytest + httpx AsyncClient (Integration Test)
   - Run: `python -m pytest {file_path} -v`
+
+### Frontend Test File
+  - Framework: Vitest + @testing-library/react + jsdom (Integration Test)
+  - Run: `npx vitest run test/fe_1.ts` or `npm test`
+
+# FE-1 `test/fe_1.ts`
+  - Test cases:
+    1. `test_pay_shows_discounted_price` — `.pay` element renders `discounted_price`, not `original_price`
+    2. `test_strike_shows_original_price` — struck-through element renders `original_price`
+    3. `test_pay_and_strike_never_equal` — pay price is always lower than struck-through price
+    4. `test_multiple_meals_all_show_discounted_price` — every meal card uses `discounted_price` in `.pay`
+    5. `test_out_of_stock_button_disabled` — "Add to cart" button is disabled when `stock_available < 1`
+
+# FE-2 `test/fe_2.ts`
+  - Test cases:
+    1. `test_initial_load_fetches_all_events` — page loads without filter and shows all events
+    2. `test_apply_filter_sends_meal_id_param` — clicking Apply filter sends `?meal_id=` (not the broken `?meal=`)
+    3. `test_filtered_results_shown_in_table` — only matching `meal_id` rows are rendered after filter
+    4. `test_clear_resets_filter_and_reloads` — clicking Clear resets input and reloads all events without filter param
+    5. `test_empty_filter_does_not_send_param` — submitting empty input omits `meal_id` from query
+
 
 # BE-1 `test/be_1.py`
   - Test cases:
@@ -265,12 +301,27 @@
 # FE-2
 
     - Bug:
+        การกรองข้อมูลด้วย meal_id ในหน้า Stock Events ยังคงแสดงผลทุก event อยู่
+        แม้จะพิมพ์ meal_id ลงในช่อง filter แล้วกด "Apply filter" ก็ไม่มีผล
+        ตารางยังแสดงข้อมูลทั้งหมดโดยไม่มีการกรอง
 
     - สาเหตุ:
+        ในไฟล์ /FE/src/api/client.ts
+        บรรทัดที่ 118 สร้าง query string เป็น `?meal=<value>` แทนที่จะเป็น `?meal_id=<value>`
+        เนื่องจาก endpoint ประกาศ parameter ไว้ว่า meal_id
+        ชื่อที่ไม่ตรงกันจึงทำให้ FastAPI มองว่าไม่มีการส่ง parameter มา (None)
+        service จึงคืนข้อมูลทุก event โดยไม่มีการกรอง
 
     - วิธีการแก้ไข:
+        เข้าไปแก้ที่ไฟล์ /FE/src/api/client.ts
 
-### File test
+        จากเดิม
+            const q = meal_id ? `?meal=${encodeURIComponent(meal_id)}` : "";
+
+        เปลี่ยนเป็น
+            const q = meal_id ? `?meal_id=${encodeURIComponent(meal_id)}` : "";
+
+### Backend File test 
   - Framework: pytest + httpx AsyncClient (Integration Test)
   - Run: `python -m pytest {file_path} -v`
 
@@ -306,3 +357,23 @@
     3. `test_decrease_qty_releases_stock_by_delta` — ลด qty ต้อง release stock คืนตามส่วนต่าง
     4. `test_same_qty_does_not_change_stock` — update qty เท่าเดิม ไม่มีการเปลี่ยนแปลง stock
     5. `test_update_nonexistent_cart_item_returns_404` — update item ที่ไม่มีใน cart ต้อง error 404
+
+### Frontend File Test
+  - Framework: Vitest + @testing-library/react + jsdom (Integration Test)
+  - Run: `npx vitest run test/fe_1.ts` หรือ `npm test`
+
+# FE-1 `test/fe_1.ts`
+  - Test cases:
+    1. `test_pay_shows_discounted_price` — element `.pay` แสดง `discounted_price` ไม่ใช่ `original_price`
+    2. `test_strike_shows_original_price` — element ขีดฆ่าแสดง `original_price`
+    3. `test_pay_and_strike_never_equal` — ราคา pay ต้องต่ำกว่าราคาขีดฆ่าเสมอ
+    4. `test_multiple_meals_all_show_discounted_price` — ทุก meal card ใช้ `discounted_price` ใน `.pay`
+    5. `test_out_of_stock_button_disabled` — ปุ่ม "Add to cart" ต้อง disabled เมื่อ `stock_available < 1`
+
+# FE-2 `test/fe_2.ts`
+  - Test cases:
+    1. `test_initial_load_fetches_all_events` — โหลดหน้าแรกโดยไม่มี filter แสดงผลทุก event
+    2. `test_apply_filter_sends_meal_id_param` — กด Apply filter ต้องส่ง `?meal_id=` (ไม่ใช่ `?meal=` ที่เคยผิด)
+    3. `test_filtered_results_shown_in_table` — หลัง filter แสดงเฉพาะ row ที่ตรงกับ `meal_id`
+    4. `test_clear_resets_filter_and_reloads` — กด Clear รีเซ็ต input และโหลดใหม่โดยไม่มี filter param
+    5. `test_empty_filter_does_not_send_param` — กด Apply ตอน input ว่าง ต้องไม่ส่ง `meal_id` ใน query
