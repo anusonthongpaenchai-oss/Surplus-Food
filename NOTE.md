@@ -44,11 +44,24 @@
 # BE-3
 
     - Bug:
-        
+        Cancelling an order sets status to CANCELLED, but stock is not correctly restored.
+        The stock restored was always a fixed value of 1, regardless of the actual order quantity.
 
     - Cause:
+        In file /BE/app/services/order.py
+        Line 107 had quantity=1 hardcoded in the stock.apply() call inside the cancel() method.
+        This meant every cancellation always incremented stock by exactly 1,
+        producing wrong results for any order with a different quantity.
 
     - Solution:
+        Fixed in file /BE/app/services/order.py
+
+        Before
+            quantity=3
+
+        After
+            quantity=line.quantity
+
 
 # BE-4
 
@@ -93,6 +106,15 @@
     2. `test_cart_line_total_uses_discounted_price` — Cart line_total = discounted_price × quantity (dynamic)
     3. `test_cart_subtotal_uses_discounted_price` — Cart subtotal = discounted_price × quantity (dynamic)
     4. `test_order_lines_use_discounted_price` — Order unit_price, line_total, and subtotal all inherit discounted prices from cart (dynamic)
+
+# BE-3 `test/be_3.py`
+  - Test cases:
+    1. `test_stock_restored_to_initial_after_cancel` — Stock returns to initial value after cancellation (primary regression)
+    2. `test_order_status_is_cancelled` — Order status equals CANCELLED after cancel
+    3. `test_cancel_creates_increment_stock_event` — An INCREMENT stock event is recorded in the audit trail with correct quantity
+    4. `test_multi_item_cancel_restores_all_meals_stock` — Cancelling a multi-item order restores stock for every meal line
+    5. `test_cancel_already_cancelled_order_returns_400` — Double-cancel returns 400 and does not double-restore stock
+    6. `test_cancel_nonexistent_order_returns_404` — Cancelling a non-existent order returns 404
 
 ------------------------------------------------------------------------
 
@@ -143,10 +165,24 @@
 # BE-3
 
     - Bug:
+        การยกเลิก Order เปลี่ยนสถานะเป็น CANCELLED แต่ stock ที่คืนกลับมาไม่ถูกต้อง
+        จำนวน stock ที่คืนถูก hardcode ไว้เป็น 1 เสมอ ไม่ว่า order จะมีจำนวนสินค้าเท่าไร
 
     - สาเหตุ:
+        ในไฟล์ /BE/app/services/order.py
+        บรรทัดที่ 107 มีการ hardcode quantity=1 ใน stock.apply() ภายใน cancel() method
+        ทำให้ทุกการยกเลิก Order จะ increment stock ขึ้นมาแค่ 1 เสมอ
+        ซึ่งให้ผลลัพธ์ที่ผิดสำหรับ order ที่มี quantity ต่างออกไป
 
     - วิธีการแก้ไข:
+        เข้าไปแก้ที่ไฟล์ /BE/app/services/order.py
+
+        จากเดิม
+            quantity=1
+
+        เปลี่ยนเป็น
+            quantity=line.quantity
+
 
 # BE-4
 
@@ -191,3 +227,12 @@
     2. `test_cart_line_total_uses_discounted_price` — line_total = discounted_price × quantity (ค่า dynamic)
     3. `test_cart_subtotal_uses_discounted_price` — subtotal = discounted_price × quantity (ค่า dynamic)
     4. `test_order_lines_use_discounted_price` — order unit_price, line_total, subtotal สืบทอดราคา discounted จาก cart (ค่า dynamic)
+
+# BE-3 `test/be_3.py`
+  - Test cases:
+    1. `test_stock_restored_to_initial_after_cancel` — stock คืนกลับสู่ค่าเริ่มต้นหลัง cancel (primary regression)
+    2. `test_order_status_is_cancelled` — order status = CANCELLED หลังยกเลิก
+    3. `test_cancel_creates_increment_stock_event` — มี INCREMENT event บันทึกใน audit trail พร้อม quantity ที่ถูกต้อง
+    4. `test_multi_item_cancel_restores_all_meals_stock` — cancel order หลาย item คืน stock ถูกทุก meal
+    5. `test_cancel_already_cancelled_order_returns_400` — cancel ซ้ำต้อง error 400 และ stock ไม่เพิ่มขึ้นอีก
+    6. `test_cancel_nonexistent_order_returns_404` — cancel order ที่ไม่มีอยู่ต้อง error 404
