@@ -88,10 +88,24 @@
 # FE-1
 
     - Bug:
-        
+        The Meals page displayed discounted_price as the "You pay" amount but was actually rendering original_price.
+        Customers saw the full undiscounted price in the highlighted pay field instead of the reduced price.
+
     - Cause:
+        In file /FE/src/pages/MealsPage.tsx
+        Line 66 had formatBaht(meal.original_price) inside the <strong className="pay"> element.
+        The original_price was being passed to the pay element, while it should have been reserved for the
+        struck-through display only. Both fields were showing the same value.
 
     - Solution:
+        Fixed in file /FE/src/pages/MealsPage.tsx
+
+        Before
+            <strong className="pay">{formatBaht(meal.original_price)}</strong>
+
+        After
+            <strong className="pay">{formatBaht(meal.discounted_price)}</strong>
+
 
 # FE-2
 
@@ -229,10 +243,24 @@
 # FE-1
 
     - Bug:
-        
+        หน้า Meals แสดงราคาในช่อง "You pay" ผิด โดยแสดง original_price แทนที่จะเป็น discounted_price
+        ลูกค้าเห็นราคาเต็มที่ไม่มีส่วนลดในช่องราคาที่ต้องจ่าย แทนที่จะเห็นราคาลด
+
     - สาเหตุ:
+        ในไฟล์ /FE/src/pages/MealsPage.tsx
+        บรรทัดที่ 66 มีการใช้ formatBaht(meal.original_price) ภายใน <strong className="pay">
+        ราคา original_price ถูกส่งไปแสดงในช่อง pay ทั้งที่ควรจะแสดงเฉพาะในช่องขีดฆ่าเท่านั้น
+        ทำให้ทั้งสองช่องแสดงราคาเดียวกัน
 
     - วิธีการแก้ไข:
+        เข้าไปแก้ที่ไฟล์ /FE/src/pages/MealsPage.tsx
+
+        จากเดิม
+            <strong className="pay">{formatBaht(meal.original_price)}</strong>
+
+        เปลี่ยนเป็น
+            <strong className="pay">{formatBaht(meal.discounted_price)}</strong>
+
 
 # FE-2
 
