@@ -35,7 +35,7 @@ class CartService:
 
         for meal_id, quantity in raw.items():
             meal = self.meals.get_meal(meal_id)
-            unit_price = meal.original_price
+            unit_price = meal.discounted_price
             line_total = unit_price * quantity
             subtotal += line_total
             items.append(
@@ -98,7 +98,7 @@ class CartService:
             self.stock.apply(
                 meal_id=meal_id,
                 quantity=delta,
-                event_type=StockEventType.INCREMENT,
+                event_type=StockEventType.DECREMENT,
                 event_source=StockEventSource.USER,
                 reference_id=f"cart:{user_id}",
                 note="reserve on cart increase",

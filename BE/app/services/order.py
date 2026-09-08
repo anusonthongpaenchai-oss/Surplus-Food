@@ -66,7 +66,8 @@ class OrderService:
 
         # Attach store metadata for receipt / downstream notifications.
         first_line = lines[0].model_dump()
-        meal = self.db.meals[first_line["mealId"]]
+        meal = self.db.meals[first_line["meal_id"]]
+
         _ = meal.store_id
 
         now = _now()
@@ -103,7 +104,7 @@ class OrderService:
         for line in order.lines:
             self.stock.apply(
                 meal_id=line.meal_id,
-                quantity=1,
+                quantity=line.quantity,
                 event_type=StockEventType.INCREMENT,
                 event_source=StockEventSource.SYSTEM,
                 reference_id=order.id,
